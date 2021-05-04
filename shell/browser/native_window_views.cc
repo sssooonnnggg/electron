@@ -161,6 +161,9 @@ NativeWindowViews::NativeWindowViews(const gin_helper::Dictionary& options,
   options.Get("thickFrame", &thick_frame_);
   if (transparent())
     thick_frame_ = false;
+
+  // FIXME(@mlaurencin): Testing how to get the title bar style parameter
+  options.GetOptional(options::kTitleBarStyle, &title_bar_style_);
 #endif
 
   if (enable_larger_than_screen())
