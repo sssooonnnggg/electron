@@ -80,6 +80,28 @@
 #include "ui/views/widget/desktop_aura/desktop_native_widget_aura.h"
 #endif
 
+namespace gin {
+
+template <>
+struct Converter<electron::NativeWindowViews::TitleBarStyle> {
+  static bool FromV8(v8::Isolate* isolate,
+                     v8::Handle<v8::Value> val,
+                     electron::NativeWindowViews::TitleBarStyle* out) {
+    using TitleBarStyle = electron::NativeWindowViews::TitleBarStyle;
+    std::string title_bar_style;
+    if (!ConvertFromV8(isolate, val, &title_bar_style))
+      return false;
+    if (title_bar_style == "hidden") {
+      LOG(INFO) << "Titlebar style hidden properly read in - " << __LINE__;
+      *out = TitleBarStyle::kHidden;
+    } else {
+      return false;
+    }
+    return true;
+  }
+};
+}  // namespace gin
+
 namespace electron {
 
 namespace {
@@ -163,7 +185,10 @@ NativeWindowViews::NativeWindowViews(const gin_helper::Dictionary& options,
     thick_frame_ = false;
 
   // FIXME(@mlaurencin): Testing how to get the title bar style parameter
-  options.GetOptional(options::kTitleBarStyle, &title_bar_style_);
+  options.Get(options::kTitleBarStyle, &title_bar_style_);
+
+  if (title_bar_style_ != TitleBarStyle::kNormal)
+    set_has_frame(false);
 #endif
 
   if (enable_larger_than_screen())
