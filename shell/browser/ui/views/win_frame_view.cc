@@ -36,23 +36,73 @@ gfx::Rect WinFrameView::GetWindowBoundsForClientBounds(
 }
 
 int WinFrameView::NonClientHitTest(const gfx::Point& point) {
-  int button_hittest = caption_button_container_->NonClientHitTest(point);
-  LOG(INFO) << "WinFrameView::NonClientHitTest - WinFrameView frame_view - "
-            << static_cast<void*>(this) << " - " << __LINE__;
-  if (button_hittest != HTCAPTION) {
-    return button_hittest;
+  // See if the point is within any of the window controls.
+  if (caption_button_container_) {
+    gfx::Point local_point = point;
+    ConvertPointToTarget(parent(), caption_button_container_, &local_point);
+    if (caption_button_container_->HitTestPoint(local_point)) {
+      const int hit_test_result =
+          caption_button_container_->NonClientHitTest(local_point);
+      if (hit_test_result != HTNOWHERE)
+        return hit_test_result;
+    }
   }
 
-  if (window_->has_frame()) {
-    LOG(INFO) << "WinFrameView::NonClientHitTest - has_frame() returned TRUE - "
-              << __LINE__;
-    return frame_->client_view()->NonClientHitTest(point);
-  } else {
-    LOG(INFO)
-        << "WinFrameView::NonClientHitTest - has_frame() returned FALSE - "
-        << __LINE__;
-    return FramelessView::NonClientHitTest(point);
+  // On Windows 8+, the caption buttons are almost butted up to the top right
+  // corner of the window. This code ensures the mouse isn't set to a size
+  // cursor while hovering over the caption buttons, thus giving the incorrect
+  // impression that the user can resize the window.
+  /*
+  if (base::win::GetVersion() >= base::win::Version::WIN8) {
+    RECT button_bounds = {0};
+    if (SUCCEEDED(DwmGetWindowAttribute(views::HWNDForWidget(frame()),
+                                        DWMWA_CAPTION_BUTTON_BOUNDS,
+                                        &button_bounds,
+                                        sizeof(button_bounds)))) {
+      gfx::RectF button_bounds_in_dips = gfx::ConvertRectToDips(
+          gfx::Rect(button_bounds), display::win::GetDPIScale());
+      // TODO(crbug.com/1131681): GetMirroredRect() requires an integer rect,
+      // but the size in DIPs may not be an integer with a fractional device
+      // scale factor. If we want to keep using integers, the choice to use
+      // ToFlooredRectDeprecated() seems to be doing the wrong thing given the
+      // comment below about insetting 1 DIP instead of 1 physical pixel. We
+      // should probably use ToEnclosedRect() and then we could have inset 1
+      // physical pixel here.
+      gfx::Rect buttons =
+          GetMirroredRect(gfx::ToFlooredRectDeprecated(button_bounds_in_dips));
+
+      // There is a small one-pixel strip right above the caption buttons in
+      // which the resize border "peeks" through.
+      constexpr int kCaptionButtonTopInset = 1;
+      // The sizing region at the window edge above the caption buttons is
+      // 1 px regardless of scale factor. If we inset by 1 before converting
+      // to DIPs, the precision loss might eliminate this region entirely. The
+      // best we can do is to inset after conversion. This guarantees we'll
+      // show the resize cursor when resizing is possible. The cost of which
+      // is also maybe showing it over the portion of the DIP that isn't the
+      // outermost pixel.
+      buttons.Inset(0, kCaptionButtonTopInset, 0, 0);
+      if (buttons.Contains(point))
+        return HTNOWHERE;
+    }
   }
+  */
+
+  /*
+   int top_border_thickness = FrameTopBorderThickness(false);
+   // At the window corners the resize area is not actually bigger, but the 16
+   // pixels at the end of the top and bottom edges trigger diagonal resizing.
+   constexpr int kResizeCornerWidth = 16;
+   int window_component = GetHTComponentForFrame(
+       point, top_border_thickness, 0, top_border_thickness,
+       kResizeCornerWidth - FrameBorderThickness(),
+       frame()->widget_delegate()->CanResize());
+   // Fall back to the caption if no other component matches.
+   return (window_component == HTNOWHERE) ? HTCAPTION : window_component;
+   */
+
+  // Use the parent class's hittest last
+  return (FramelessView::NonClientHitTest(point));
 }
 
 const char* WinFrameView::GetClassName() const {
@@ -63,6 +113,9 @@ bool WinFrameView::IsMaximized() const {
   return frame()->IsMaximized();
 }
 
+// TODO(@mlaurencin): bool IsWindowControlsOverlayEnabled() const; was defined
+// in NativeWindowViews and seems to be functionally the same for our use case,
+// so this may not be needed
 bool WinFrameView::ShouldCustomDrawSystemTitlebar() const {
   return window()->title_bar_style() !=
          NativeWindowViews::TitleBarStyle::kNormal;
@@ -70,8 +123,9 @@ bool WinFrameView::ShouldCustomDrawSystemTitlebar() const {
 
 void WinFrameView::Layout() {
   LayoutCaptionButtons();
-  // if (browser_view()->IsWindowControlsOverlayEnabled())
-  //   LayoutWindowControlsOverlay();
+  if (window()->IsWindowControlsOverlayEnabled()) {
+    LayoutWindowControlsOverlay();
+  }
   // else
   //   LayoutTitleBar();
   // LayoutClientView();
@@ -239,6 +293,36 @@ void WinFrameView::LayoutCaptionButtons() {
                                        WindowTopY(), preferred_size.width(),
                                        height);
   //*/
+}
+
+void WinFrameView::LayoutWindowControlsOverlay() {
+  LOG(INFO) << "WinFrameView::LayoutWindowControlsOverlay - Function called - "
+               "not implemented yet - "
+            << __LINE__;
+  // FIXME(@mlaurencin): I do not have these WebApp related things
+  // implemented, but I don't think it needs to be
+  // Layout WebAppFrameToolbarView.
+  /*
+  int overlay_height = caption_button_container_->size().height();
+  auto available_space =
+      gfx::Rect(0, WindowTopY(), MinimizeButtonX(), overlay_height);
+  web_app_frame_toolbar()->LayoutForWindowControlsOverlay(available_space);
+  */
+
+  // TODO(@mlaurencin): These will be replacd with calls to
+  // `SetWindowControlsOverlayRect`
+  /*
+  content::WebContents* web_contents = browser_view()->GetActiveWebContents();
+  // WebContents can be null when an app window is first launched.
+  if (web_contents) {
+    int overlay_width = web_app_frame_toolbar()->size().width() +
+                        caption_button_container_->size().width();
+    int bounding_rect_width = width() - overlay_width;
+    auto bounding_rect =
+        GetMirroredRect(gfx::Rect(0, 0, bounding_rect_width, overlay_height));
+    web_contents->UpdateWindowControlsOverlay(bounding_rect);
+  }
+  */
 }
 
 }  // namespace electron

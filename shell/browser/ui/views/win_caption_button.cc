@@ -32,6 +32,7 @@ WinCaptionButton::WinCaptionButton(PressedCallback callback,
   // Not focusable by default, only for accessibility.
   SetFocusBehavior(FocusBehavior::ACCESSIBLE_ONLY);
   SetAccessibleName(accessible_name);
+  SetTooltipText(accessible_name);
 }
 
 gfx::Size WinCaptionButton::CalculatePreferredSize() const {
@@ -78,8 +79,9 @@ SkColor WinCaptionButton::GetBaseColor() const {
   // return WinFrameView::GetReadableFeatureColor(bg_color);
   // <--FIXME(@mlaurencin): Most likely need to implement
 
-  return SkColorSetRGB(0x00, 0x00, 0xFF);  // FIXME(@mlaurencin): Temporary -
-                                           // Remove once theme_provider is fixed
+  return SkColorSetRGB(0x00, 0x00,
+                       0xFF);  // FIXME(@mlaurencin): Temporary -
+                               // Remove once theme_provider is fixed
 }
 
 void WinCaptionButton::OnPaintBackground(gfx::Canvas* canvas) {

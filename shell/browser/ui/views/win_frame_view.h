@@ -75,6 +75,7 @@ class WinFrameView : public FramelessView {
   int WindowTopY() const;
 
   void LayoutCaptionButtons();
+  void LayoutWindowControlsOverlay();
 
   // The container holding the caption buttons (minimize, maximize, close, etc.)
   // May be null if the caption button container is destroyed before the frame

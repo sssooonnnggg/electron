@@ -178,6 +178,9 @@ class NativeWindowViews : public NativeWindow,
       kHidden,
   };
   TitleBarStyle title_bar_style() const { return title_bar_style_; }
+  bool IsWindowControlsOverlayEnabled() const;
+  // TODO(@mlaurencin): WinFrameView::ShouldCustomDrawSystemTitlebar seems to be
+  // functionally the same for our use case, so it may not be needed
 #endif
 
  private:

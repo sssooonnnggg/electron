@@ -394,6 +394,11 @@ void NativeWindowViews::SetGTKDarkThemeEnabled(bool use_dark_theme) {
 #endif
 }
 
+// FIXME(@mlaurencin): Change/Move if necessary
+bool NativeWindowViews::IsWindowControlsOverlayEnabled() const {
+  return title_bar_style_ == TitleBarStyle::kHidden;
+}
+
 void NativeWindowViews::SetContentView(views::View* view) {
   if (content_view()) {
     root_view_->RemoveChildView(content_view());

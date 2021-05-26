@@ -30,22 +30,6 @@ std::unique_ptr<WinCaptionButton> CreateCaptionButton(
 }
 
 bool HitTestCaptionButton(WinCaptionButton* button, const gfx::Point& point) {
-  LOG(INFO) << "HitTestCaptionButton (WinCaptionButtonContainer) - button - "
-            << static_cast<void*>(button) << " - " << __LINE__;
-  LOG(INFO) << "HitTestCaptionButton (WinCaptionButtonContainer) - "
-               "button->GetVisible() - "
-            << button->GetVisible() << " - " << __LINE__;
-  LOG(INFO) << "HitTestCaptionButton (WinCaptionButtonContainer) - "
-               "button->bounds() - TR: ("
-            << button->bounds().top_right().x() << ","
-            << button->bounds().top_right().y() << ") BL: ("
-            << button->bounds().bottom_left().x() << ","
-            << button->bounds().bottom_left().y() << ") - " << __LINE__;
-  LOG(INFO) << "HitTestCaptionButton (WinCaptionButtonContainer) - point ("
-            << point.x() << "," << point.y() << ") - " << __LINE__;
-  LOG(INFO) << "HitTestCaptionButton (WinCaptionButtonContainer) - "
-               "button->bounds().Contains(point) - "
-            << button->bounds().Contains(point) << " - " << __LINE__;
   return button && button->GetVisible() && button->bounds().Contains(point);
 }
 
@@ -78,14 +62,6 @@ WinCaptionButtonContainer::WinCaptionButtonContainer(WinFrameView* frame_view)
           frame_view_,
           VIEW_ID_CLOSE_BUTTON,
           IDS_APP_ACCNAME_CLOSE))) {
-  LOG(INFO) << "WinCaptionButtonContainer::WinCaptionButtonContainer - The "
-               "container has been built - "
-            << __LINE__;
-  if (frame_view_->frame() == nullptr) {
-    LOG(INFO)
-        << "WinCaptionButtonContainer::WinCaptionButtonContainer - whelp... - "
-        << __LINE__;
-  }
   // Layout is horizontal, with buttons placed at the trailing end of the view.
   // This allows the container to expand to become a faux titlebar/drag handle.
   auto* const layout = SetLayoutManager(std::make_unique<views::FlexLayout>());
@@ -108,23 +84,36 @@ WinCaptionButtonContainer::~WinCaptionButtonContainer() {}
 int WinCaptionButtonContainer::NonClientHitTest(const gfx::Point& point) const {
   // FIXME(@mlaurencin): This DCHECK needs to pass, but I am commenting now to
   // view pointer value
-  // DCHECK(HitTestPoint(point))
-  //     << "should only be called with a point inside this view's bounds";
-  LOG(INFO)
-      << "WinCaptionButtonContainer::NonClientHitTest - Button frame_view - "
-      << static_cast<void*>(frame_view_) << " - " << __LINE__;
+  DCHECK(HitTestPoint(point))
+      << "should only be called with a point inside this view's bounds";
+  // LOG(INFO)
+  //     << "WinCaptionButtonContainer::NonClientHitTest - Button frame_view - "
+  //     << static_cast<void*>(frame_view_) << " - " << __LINE__;
   if (HitTestCaptionButton(minimize_button_, point)) {
+    auto name = minimize_button_->GetAccessibleName();
     LOG(INFO) << "WinCaptionButtonContainer::NonClientHitTest - Minimize "
                  "button captioned - "
-              << __LINE__;
+              << name << " - " << __LINE__;
     return HTMINBUTTON;
   }
-  if (HitTestCaptionButton(maximize_button_, point))
+  if (HitTestCaptionButton(maximize_button_, point)) {
+    LOG(INFO) << "WinCaptionButtonContainer::NonClientHitTest - Maximize "
+                 "button captioned - "
+              << __LINE__;
     return HTMAXBUTTON;
-  if (HitTestCaptionButton(restore_button_, point))
+  }
+  if (HitTestCaptionButton(restore_button_, point)) {
+    LOG(INFO) << "WinCaptionButtonContainer::NonClientHitTest - Restore "
+                 "button captioned - "
+              << __LINE__;
     return HTMAXBUTTON;
-  if (HitTestCaptionButton(close_button_, point))
+  }
+  if (HitTestCaptionButton(close_button_, point)) {
+    LOG(INFO) << "WinCaptionButtonContainer::NonClientHitTest - Close "
+                 "button captioned - "
+              << __LINE__;
     return HTCLOSE;
+  }
   return HTCAPTION;
 }
 
@@ -144,11 +133,7 @@ void WinCaptionButtonContainer::AddedToWidget() {
 
   UpdateButtons();
 
-  // if (frame_view_->browser_view()->IsWindowControlsOverlayEnabled()) {
-  // TODO(@mlaurencin): Add method that fetches the value from the created
-  // window whether this feature is on or not - TitleBarStyle: hidden
-  if (frame_view_->window()->title_bar_style() ==
-      electron::NativeWindowViews::TitleBarStyle::kHidden) {
+  if (frame_view_->window()->IsWindowControlsOverlayEnabled()) {
     // SetBackground(
     //     views::CreateSolidBackground(frame_view_->GetTitlebarColor()));
     // BrowserView paints to a layer, so this must do the same to ensure that it
