@@ -10,12 +10,12 @@
 #include <string>
 
 #include "base/callback.h"
-#include "base/optional.h"
 #include "base/values.h"
 #include "gin/handle.h"
 #include "gin/wrappable.h"
 #include "services/network/public/mojom/net_log.mojom.h"
 #include "shell/common/gin_helper/promise.h"
+#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace gin {
 class Arguments;
